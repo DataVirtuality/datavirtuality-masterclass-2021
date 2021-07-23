@@ -1,5 +1,5 @@
 /* Data Virtuality exported objects */
-/* Created: 22.07.21  23:17:50.014 */
+/* Created: 23.07.21  00:40:40.327 */
 /* Server version: 2.4.9 */
 /* Build: 506e8e1 */
 /* Build date: 2021-07-08 */
@@ -231,74 +231,6 @@ order by dependentResourceName, dependentResourceType, parentResourceName, paren
 
 end') ;;
 
-EXEC SYSADMIN.importProcedure("text" => 'CREATE procedure metadata."_InitDataLineage"() as
-begin
-	declare string sqlcode;	
-
-	delete from dwh.tblDataLineage;
-
-    loop on (
-    	select * from INFORMATION_SCHEMA.tables 
-    	where table_schema in (''master_class_2021_sample_data'',''dwh'') -- include these schemas
-    	and not(table_schema = ''dwh'' and table_name like ''mat_table_%'') -- exclude materialized tables
-    ) as cur
-    begin
-        sqlcode = ''select * from "'' || cur.table_schema || ''.'' || cur.table_name || ''";'';
-        
-        insert into dwh.tblDataLineage (
-            data_lineage_table_schema
-            ,data_lineage_table_name
-            ,data_lineage_table_type
-            ,depth
-            ,source_table_Schema
-            ,source_table_name
-            ,source_column_name
-            ,target_table_schema
-            ,target_table_name
-            ,target_column_name
-            ,hashkey_data_lineage_schema_table
-            ,hashkey_source_schema_table
-            ,hashkey_source_schema_table_column
-            ,hashkey_target_schema_table
-            ,hashkey_target_schema_table_column
-            ,default_order
-            ,id
-            ,parent_id
-        ) 
-        select
-            cur.table_schema as data_lineage_table_schema
-            ,cur.table_name as data_lineage_table_name
-            ,cur.table_type as data_lineage_table_type
-            ,case
-            	when lower(cur.table_schema || ''.'' || cur.table_name) = lower(dl.sourceColumnSchema || ''.'' || dl.sourceColumnTable) then 0
-            	else -1
-            end as depth
-            ,dl.sourceColumnSchema as source_table_Schema
-            ,dl.sourceColumnTable as source_table_name
-            ,dl.sourceColumnName as source_column_name
-            ,dl.targetColumnSchema as target_table_schema
-            ,dl.targetColumnTable as target_table_name
-            ,dl.targetColumnName as target_column_name
-            ,cast(to_chars(SHA2_512(lower(cur.table_schema || ''.'' || cur.table_name)),''HEX'') as string) as hashkey_data_lineage_schema_table
-            ,cast(to_chars(SHA2_512(lower(dl.sourceColumnSchema || ''.'' || dl.sourceColumnTable)),''HEX'') as string) as hashkey_source_schema_table
-            ,cast(to_chars(SHA2_512(lower(dl.sourceColumnSchema || ''.'' || dl.sourceColumnTable || ''.'' || dl.sourceColumnName)),''HEX'') as string) as hashkey_source_schema_table_column
-            ,cast(to_chars(SHA2_512 (lower(dl.targetColumnSchema || ''.'' || dl.targetColumnTable)),''HEX'') as string) as hashkey_target_schema_table
-            ,cast(to_chars(SHA2_512 (lower(dl.targetColumnSchema || ''.'' || dl.targetColumnTable || ''.'' || dl.targetColumnName)),''HEX'') as string) as hashkey_target_schema_table_column
-            ,row_number() over(order by 1) as default_order
-            ,uuid() as id
-            ,null as parent_id
-        from
-            (call SYSADMIN.getDataLineageWithRelationsOnly("sql" => sqlcode)) dl;
-            
-	end
-	
-	-- Use this when troubleshooting the sproc "update_parent_child_relationships"
-	--call "dwh.native"("request" => ''CALL dwh_dv_2_4_9.reset_parent_child_relationships();'');
-	
-	-- Connect the child (id) and parent rows (parent_id)
-	call "dwh.native"("request" => ''CALL dwh_dv_2_4_9.update_parent_child_relationships();'');
-end') ;;
-
 EXEC SYSADMIN.importProcedure("text" => 'create procedure metadata.searchMetadata_standalone(searchTerm string) 
 returns(
 	SchemaName string, 
@@ -458,6 +390,83 @@ begin
 		);'';
 		execute immediate (sqlcode);
 --	end
+end') ;;
+
+EXEC SYSADMIN.importProcedure("text" => 'CREATE procedure metadata."_InitDataLineage"() as
+begin
+	declare string sqlcode;	
+
+	delete from dwh.tblDataLineage;
+
+    loop on (
+    	select * from INFORMATION_SCHEMA.tables 
+    	where table_schema in (''master_class_2021_sample_data'',''dwh'') -- include these schemas
+    	and not(table_schema = ''dwh'' and table_name like ''mat_table_%'') -- exclude materialized tables
+    ) as cur
+    begin
+        sqlcode = ''select * from "'' || cur.table_schema || ''.'' || cur.table_name || ''";'';
+        
+        insert into dwh.tblDataLineage (
+            data_lineage_table_schema
+            ,data_lineage_table_name
+            ,data_lineage_table_type
+            ,depth
+            ,source_table_Schema
+            ,source_table_name
+            ,source_column_name
+            ,target_table_schema
+            ,target_table_name
+            ,target_column_name
+            ,hashkey_data_lineage_schema_table
+            ,hashkey_source_schema_table
+            ,hashkey_source_schema_table_column
+            ,hashkey_target_schema_table
+            ,hashkey_target_schema_table_column
+            ,default_order
+            ,id
+            ,parent_id
+        ) 
+        select
+            cur.table_schema as data_lineage_table_schema
+            ,cur.table_name as data_lineage_table_name
+            ,cur.table_type as data_lineage_table_type
+            ,case
+            	when lower(cur.table_schema || ''.'' || cur.table_name) = lower(dl.sourceColumnSchema || ''.'' || dl.sourceColumnTable) then 0
+            	else -1
+            end as depth
+            ,dl.sourceColumnSchema as source_table_Schema
+            ,dl.sourceColumnTable as source_table_name
+            ,dl.sourceColumnName as source_column_name
+            ,dl.targetColumnSchema as target_table_schema
+            ,dl.targetColumnTable as target_table_name
+            ,dl.targetColumnName as target_column_name
+            ,cast(to_chars(SHA2_512(lower(cur.table_schema || ''.'' || cur.table_name)),''HEX'') as string) as hashkey_data_lineage_schema_table
+            ,cast(to_chars(SHA2_512(lower(dl.sourceColumnSchema || ''.'' || dl.sourceColumnTable)),''HEX'') as string) as hashkey_source_schema_table
+            ,cast(to_chars(SHA2_512(lower(dl.sourceColumnSchema || ''.'' || dl.sourceColumnTable || ''.'' || dl.sourceColumnName)),''HEX'') as string) as hashkey_source_schema_table_column
+            ,cast(to_chars(SHA2_512 (lower(dl.targetColumnSchema || ''.'' || dl.targetColumnTable)),''HEX'') as string) as hashkey_target_schema_table
+            ,cast(to_chars(SHA2_512 (lower(dl.targetColumnSchema || ''.'' || dl.targetColumnTable || ''.'' || dl.targetColumnName)),''HEX'') as string) as hashkey_target_schema_table_column
+            ,row_number() over(order by 1) as default_order
+            ,uuid() as id
+            ,null as parent_id
+        from
+            (call SYSADMIN.getDataLineageWithRelationsOnly("sql" => sqlcode)) dl;
+            
+	end
+	
+	-- Use this when troubleshooting the sproc "update_parent_child_relationships"
+	--call "dwh.native"("request" => ''CALL dwh_dv_2_4_9.reset_parent_child_relationships();'');
+
+
+
+	declare object sproc_exists = (call "dwh.native"(
+		"request" => ''SELECT EXISTS (SELECT * FROM pg_catalog.pg_proc JOIN pg_namespace ON pg_catalog.pg_proc.pronamespace = pg_namespace.oid WHERE proname = ''''reset_parent_child_relationships'''' AND pg_namespace.nspname = ''''dwh_dv_2_4_9'''')''));
+				
+				
+	if (cast(sproc_exists[1] as boolean))
+	begin
+		-- Connect the child (id) and parent rows (parent_id)
+		call "dwh.native"("request" => ''CALL dwh_dv_2_4_9.update_parent_child_relationships();'');
+	end
 end') ;;
 
 EXEC SYSADMIN.importView("text" => 'CREATE view "metadata"."_RawForeignKeys" as
