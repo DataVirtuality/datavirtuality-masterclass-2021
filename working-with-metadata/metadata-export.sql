@@ -1,9 +1,9 @@
 /* Data Virtuality exported objects */
-/* Created: 08.06.21  14:18:26.100 */
-/* Server version: 2.4.6 */
-/* Build: ce8ff20 */
-/* Build date: 2021-05-28 */
-/* Exported by Studio ver.2.4.6 (rev.cb1b700). Build date is 2021-05-28. */
+/* Created: 22.07.21  23:17:50.014 */
+/* Server version: 2.4.9 */
+/* Build: 506e8e1 */
+/* Build date: 2021-07-08 */
+/* Exported by Studio ver.2.4.9 (rev.32b0c52). Build date is 2021-07-08. */
 /* Please set statement separator to ;; before importing */
 
 
@@ -12,7 +12,7 @@
 /* Exported virtual schemas */
 EXEC SYSADMIN.createVirtualSchema("name" => 'metadata') ;;
 
-EXEC SYSADMIN.importView("text" => 'create view "metadata"."DataLineage" as
+EXEC SYSADMIN.importView("text" => 'CREATE view "metadata"."DataLineage" as
 SELECT * FROM "dwh.tblDataLineage"') ;;
 
 EXEC SYSADMIN.importView("text" => 'create view "metadata"."ResourceDependencies" as
@@ -233,35 +233,9 @@ end') ;;
 
 EXEC SYSADMIN.importProcedure("text" => 'CREATE procedure metadata."_InitDataLineage"() as
 begin
-	-- drop the old table.
-	-- if implementing in production, create it if it doesn''t exist.
-	-- If it does exist, delete or truncate, so we leave any permissions intact.
-	drop table if exists dwh.tblDataLineage;
-	
-	declare string sqlcode = ''
-	create table dwh.tblDataLineage (
-	    data_lineage_table_schema string
-	    ,data_lineage_table_name string
-	    ,data_lineage_table_type string
-	    ,depth integer
-	    ,source_table_Schema string
-	    ,source_table_name string
-	    ,source_column_name string
-	    ,target_table_schema string
-	    ,target_table_name string
-	    ,target_column_name string
-	    ,hashkey_data_lineage_schema_table string
-	    ,hashkey_source_schema_table string
-	    ,hashkey_source_schema_table_column string
-	    ,hashkey_target_schema_table string
-	    ,hashkey_target_schema_table_column string
-	    ,default_order integer
-	    ,id string
-	    ,parent_id string
-	);;'';
-	
-	execute immediate (sqlcode);
-	
+	declare string sqlcode;	
+
+	delete from dwh.tblDataLineage;
 
     loop on (
     	select * from INFORMATION_SCHEMA.tables 
@@ -319,10 +293,10 @@ begin
 	end
 	
 	-- Use this when troubleshooting the sproc "update_parent_child_relationships"
-	--call "dwh.native"("request" => ''CALL dwh_dv_2_4_5.reset_parent_child_relationships();'');
+	--call "dwh.native"("request" => ''CALL dwh_dv_2_4_9.reset_parent_child_relationships();'');
 	
 	-- Connect the child (id) and parent rows (parent_id)
-	call "dwh.native"("request" => ''CALL dwh_dv_2_4_5.update_parent_child_relationships();'');
+	call "dwh.native"("request" => ''CALL dwh_dv_2_4_9.update_parent_child_relationships();'');
 end') ;;
 
 EXEC SYSADMIN.importProcedure("text" => 'create procedure metadata.searchMetadata_standalone(searchTerm string) 
@@ -425,6 +399,65 @@ where
 --	lower(lastWarnings) like srchTerm
 ;
 
+end') ;;
+
+EXEC SYSADMIN.importProcedure("text" => 'CREATE procedure metadata."_Init"() as
+begin
+	declare string sqlcode;	
+
+--	call "dwh.native"("request" => ''drop table if exists dwh.tblDataLineage;'');
+	sqlcode = ''drop table if exists dwh.tblDataLineage;'';
+	execute immediate (sqlcode);
+
+	
+--	declare boolean tblExists;
+--	tblExists = (call UTILS.tableExists("tableName" => ''dwh.tblDataLineage''));
+	--if (not tblExists)
+	--begin
+		sqlcode = ''
+		create table dwh.tblDataLineage (
+		    data_lineage_table_schema string
+		    ,data_lineage_table_name string
+		    ,data_lineage_table_type string
+		    ,depth integer
+		    ,source_table_Schema string
+		    ,source_table_name string
+		    ,source_column_name string
+		    ,target_table_schema string
+		    ,target_table_name string
+		    ,target_column_name string
+		    ,hashkey_data_lineage_schema_table string
+		    ,hashkey_source_schema_table string
+		    ,hashkey_source_schema_table_column string
+		    ,hashkey_target_schema_table string
+		    ,hashkey_target_schema_table_column string
+		    ,default_order integer
+		    ,id string
+		    ,parent_id string
+		);;'';
+		execute immediate (sqlcode);
+	--end
+	
+	sqlcode = ''drop table if exists dwh.tblResourceDependencies;'';
+	execute immediate (sqlcode);
+	
+--	tblExists = (call UTILS.tableExists("tableName" => ''dwh.tblResourceDependencies''));
+--	if (not tblExists)
+--	begin
+		sqlcode = ''
+		create table dwh.tblResourceDependencies(
+			dependentResourceName string not null,
+			dependentResourceType string not null, 
+			parentResourceName string not null,
+			parentResourceType string not null,
+			permissionRoleName string not null,
+			permissionText string not null,
+			parentPath string not null,
+			path string not null,
+			depth integer not null
+		);'';
+		execute immediate (sqlcode);
+--	end
 end') ;;
 
 EXEC SYSADMIN.importView("text" => 'CREATE view "metadata"."_RawForeignKeys" as
@@ -650,27 +683,10 @@ end') ;;
 
 EXEC SYSADMIN.importProcedure("text" => 'CREATE procedure metadata."_InitResourceDependencies"() as
 begin
-
 	
-	drop table if exists dwh.tblResourceDependencies;
-	
-	declare string sqlcode = ''
-	create table dwh.tblResourceDependencies(
-		dependentResourceName string not null,
-		dependentResourceType string not null, 
-		parentResourceName string not null,
-		parentResourceType string not null,
-		permissionRoleName string not null,
-		permissionText string not null,
-		parentPath string not null,
-		path string not null,
-		depth integer not null
-	);'';
-	
-	
-	execute immediate (sqlcode);
-	
+	declare string sqlcode;
 		
+	delete from dwh.tblResourceDependencies;
 
 	insert into dwh.tblResourceDependencies(
 		dependentResourceName,
