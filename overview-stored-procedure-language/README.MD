@@ -5,7 +5,7 @@ This repository contains all material from the Data Virtuality Masterclass 2021 
 
 Please find the links to the recorded masterclass sessions here.
 
-[Working with Metadata](https://vimeo.com/558984786/95cd10680a)
+[Overview over Data Virtuality Stored Procedural Language](https://vimeo.com/644301679/548373c540)
 
 ### The code
 
