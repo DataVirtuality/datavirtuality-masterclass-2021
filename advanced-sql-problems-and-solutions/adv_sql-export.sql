@@ -65,8 +65,8 @@ FROM
 	(select * from INFORMATION_SCHEMA.columns limit 1000) tb1,
 	(select * from INFORMATION_SCHEMA.columns limit 1000) tb2
 order by n
-limit 1000000
-OPTION $ALLOW_CARTESIAN EXPLICIT;
+limit 1000000;
+--OPTION $ALLOW_CARTESIAN EXPLICIT;
 
 
 call "dwh.native"("request" => ''ALTER TABLE "dwh_dv_2_4_5"."Numbers" ADD PRIMARY KEY (n);'');
